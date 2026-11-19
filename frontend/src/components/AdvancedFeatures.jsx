@@ -22,7 +22,30 @@ export function AIHelper({ form, setForm }) {
 
 export function DuplicateChecker({ form, position }) {
   const [loading,setLoading]=useState(false), [result,setResult]=useState(null), [error,setError]=useState('');
-  const check=async()=>{setLoading(true);setError('');try{const {data}=await api.post('/advanced/duplicates/check',{description:form.description,latitude:position[0],longitude:position[1]});setResult(data)}catch(e){setError(e.response?.data?.message||'Duplicate check failed.')}finally{setLoading(false)}};
+  const check = async () => {
+    if (!position || position.length < 2) {
+      setError('Please select a location before checking duplicates.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setResult(null);
+
+    try {
+      const { data } = await api.post('/advanced/duplicates/check', {
+        description: form.description,
+        latitude: position[0],
+        longitude: position[1]
+      });
+
+      setResult(data);
+    } catch (e) {
+      setError(e.response?.data?.message || 'Duplicate check failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
   return <section className="advanced-inline"><div className="advanced-inline-head"><div><b>⌕ Check for similar complaints</b><small>Checks complaints within 500 metres and compares descriptions.</small></div><button type="button" className="btn btn-outline btn-small" onClick={check} disabled={loading || form.description.trim().length < 8}>{loading?'Checking…':'Check duplicates'}</button></div>
     {error&&<p className="advanced-error">{error}</p>}
     {result && (result.possibleDuplicate ? <div className="duplicate-results"><b>Possible similar complaints found</b>{result.matches.map(x=><Link key={x._id} to={`/issues/${x._id}`} className="duplicate-item"><span><b>{x.title}</b><small>{x.category} · {x.status.replace('_',' ')}</small></span><strong>{Math.round(x.similarity*100)}% match</strong></Link>)}</div> : <p className="advanced-success">No close matching complaint was found. You can continue submitting.</p>)}
