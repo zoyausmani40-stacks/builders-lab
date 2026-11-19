@@ -105,8 +105,39 @@ export default function AdvancedFeatures() {
     return()=>{clearInterval(timer);socket.disconnect()};
   },[]);
   useEffect(()=>{if(!canManage)return;Promise.all([api.get('/advanced/heatmap'),api.get('/advanced/workers/performance')]).then(([a,b])=>{setPoints(a.data);setWorkers(b.data)}).catch(e=>setError(e.response?.data?.message||'Could not load management metrics.'))},[canManage]);
-  const markRead=async id=>{try{await api.patch(`/advanced/notifications/${id}/read`);setNotifications(old=>old.map(n=>n._id===id?{...n,read:true}:n))}catch{}};
-  const markAll=async()=>{try{await api.patch('/advanced/notifications/read-all');setNotifications(old=>old.map(n=>({...n,read:true})))}catch{}};
+  const markRead = async (id) => {
+    try {
+      await api.patch(`/advanced/notifications/${id}/read`);
+
+      setNotifications(old =>
+        old.map(n =>
+          n._id === id ? { ...n, read: true } : n
+        )
+      );
+
+      setNotificationError('');
+    } catch (e) {
+      setNotificationError(
+        e.response?.data?.message || 'Could not mark notification as read.'
+      );
+    }
+  };
+
+  const markAll = async () => {
+    try {
+      await api.patch('/advanced/notifications/read-all');
+
+      setNotifications(old =>
+        old.map(n => ({ ...n, read: true }))
+      );
+
+      setNotificationError('');
+    } catch (e) {
+      setNotificationError(
+        e.response?.data?.message || 'Could not mark all notifications as read.'
+      );
+    }
+  };
   return <><div className="page-title"><div><span className="eyebrow">CIVICGRID INTELLIGENCE</span><h1>Advanced features</h1><p>Notifications, issue insights and service performance.</p></div></div>
     {error&&<div className="alert">{error}</div>}
     <section className="panel advanced-panel"><div className="section-top"><h3>Notifications</h3><button className="btn btn-outline btn-small" onClick={markAll}>Mark all read</button></div>{notificationError&&<div className="alert">{notificationError}</div>}{!notifications.length?<p className="muted">No notifications yet. Updates about your complaints will appear here.</p>:<div className="notification-list">{notifications.map(n=><div key={n._id} className={`notification-item ${n.read?'is-read':''}`}><span className="notification-dot"/><div><b>{n.title}</b><p>{n.message}</p><small>{new Date(n.createdAt).toLocaleString()} {n.issue&&n.issue._id&&<> · <Link to={`/issues/${n.issue._id}`}>View complaint</Link></>}</small></div>{!n.read&&<button className="btn btn-outline btn-small" onClick={()=>markRead(n._id)}>Mark read</button>}</div>)}</div>}</section>
